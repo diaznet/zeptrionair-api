@@ -86,6 +86,7 @@ To write: `POST /zrap/chdes/ch1` with body `name=Kitchen&group=First+floor`.
 - [PDF] Same format as `chscan` (root element `<chnotify>`).
 - The request is held open until a channel changes, or for at most 30 s; then the client re-requests.
 - Use it as a fallback push channel when the WebSocket isn't available.
+- [OBS] It works on 01.08.28 alongside the WebSocket; a change arrived about 140 ms after the command.
 
 ### 4.5 `POST /zrap/chctrl/chN` and `POST /zrap/chctrl`: control
 Single channel: `POST /zrap/chctrl/ch1` with `cmd=on`.
@@ -153,6 +154,8 @@ Present only when a Smartfront is fitted; otherwise the endpoints return 404.
 - No sub-protocol and no authentication. The server sends JSON text frames; no client messages are needed.
 - Several clients can be connected at the same time, and each receives every frame. Two parallel connections were tested.
 - No frames were seen while idle for 150 s, so a client can't use silence to detect a dead connection.
+- **The device does not answer WebSocket pings.** A client heartbeat (e.g. aiohttp `heartbeat=`) makes the client close the connection after the first unanswered ping. Check liveness with a cheap HTTP request instead (`/zrap/rssi`).
+- Latency observed: a `chctrl` POST takes about 30 ms, and the matching `eid1` arrives 30–50 ms after the POST returns. The same change via `chnotify` arrives after about 140 ms.
 
 ### 5.1 `eid1`: channel value changed
 ```json

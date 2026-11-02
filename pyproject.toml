@@ -1,0 +1,106 @@
+[build-system]
+requires = ["hatchling>=1.26", "hatch-vcs>=0.4"]
+build-backend = "hatchling.build"
+
+[project]
+name = "zeptrionair-api"
+dynamic = ["version"]
+description = "Async Python library and CLI for Feller zeptrionAir devices (local HTTP/WebSocket API)"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Jeremy Diaz", email = "jd@diaznet.fr" }]
+requires-python = ">=3.12"
+keywords = ["feller", "zeptrion", "zeptrionair", "zapp", "home-automation", "asyncio"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: AsyncIO",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Home Automation",
+    "Typing :: Typed",
+]
+dependencies = ["aiohttp>=3.11"]
+
+[project.optional-dependencies]
+discovery = ["zeroconf>=0.132"]
+cli = ["typer>=0.12", "zeroconf>=0.132"]
+
+[project.scripts]
+zeptrion = "zeptrionair_api.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/diaznet/zeptrionair-api"
+Documentation = "https://github.com/diaznet/zeptrionair-api/blob/main/docs/protocol.md"
+Issues = "https://github.com/diaznet/zeptrionair-api/issues"
+Changelog = "https://github.com/diaznet/zeptrionair-api/blob/main/CHANGELOG.md"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.13",
+    "pytest>=8.3",
+    "pytest-asyncio>=1.0",
+    "pytest-cov>=6.0",
+    "ruff>=0.8",
+    "typer>=0.12",
+    "zeroconf>=0.132",
+]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.raw-options]
+# PyPI/TestPyPI reject local versions ("+g1234abc"), so leave them out.
+local_scheme = "no-local-version"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/zeptrionair_api/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/zeptrionair_api"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src", "tests", "docs/protocol.md", "README.md", "LICENSE", "CHANGELOG.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "--strict-markers"
+
+[tool.coverage.run]
+source = ["zeptrionair_api"]
+branch = true
+omit = ["*/_version.py"]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError", "if __name__ == .__main__.:"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["src/zeptrionair_api/_version.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "ASYNC", "PT", "C4", "RET", "N"]
+# A per-request `timeout` argument is part of the public API here.
+ignore = ["ASYNC109"]
+
+[tool.ruff.lint.per-file-ignores]
+# Polling helpers, blocking file reads and fake class registries are fine in tests.
+"tests/**" = ["ASYNC110", "ASYNC240", "RUF012"]
+
+[tool.mypy]
+strict = true
+python_version = "3.12"
+exclude = ["build/", "dist/"]
+
+[[tool.mypy.overrides]]
+module = ["zeroconf.*"]
+ignore_missing_imports = true

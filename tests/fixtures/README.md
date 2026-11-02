@@ -4,7 +4,7 @@ Real responses captured from zeptrionAir devices, anonymised. **No real serial n
 
 ## `devices/`
 
-Captured with `scripts/capture_fixtures.py` (read-only GET requests only).
+Captured with `zeptrion dump` / `python -m zeptrionair_api.capture` (read-only GET requests only).
 
 - `index.json` summarises each device: type, firmware, channel categories, Smartfront type, `btfu`, and the HTTP status of every probed endpoint.
 - `device_NN/responses.json` maps each endpoint path to `{status, content_type, body}`. `body` is the exact response text, so parser tests see the real formatting.
@@ -46,7 +46,8 @@ Key numbers are 1-based: `bta` position *i* (0-based) is key *i+1*, and key *k* 
 ## Contributing fixtures from other hardware
 
 ```
-python scripts/capture_fixtures.py OUTDIR HOST [HOST ...]
+zeptrion dump OUTDIR HOST [HOST ...]
+# or: python -m zeptrionair_api.capture OUTDIR HOST [HOST ...]
 ```
 
 Check the output, then open a pull request. Fixtures from 3340-x-A models, 4-channel devices, dimmers, awnings, sensor fronts and older firmware are especially welcome.
