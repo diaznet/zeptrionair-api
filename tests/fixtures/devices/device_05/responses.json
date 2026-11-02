@@ -1,0 +1,57 @@
+{
+  "/zrap/id": {
+    "status": 200,
+    "content_type": "text/xml",
+    "body": "<?xml version=\"1.0\" encoding=\"US-ASCII\"?><id><hw>01.05.02</hw><sn>99990005</sn><sys>ZEPTRION</sys><type>3340-2-B</type><oen>zApp</oen><sw>01.08.28 (Jun  1 2018 09:13:39)</sw><boot>01.04.02 (Apr 13 2018 10:08:29)</boot></id>"
+  },
+  "/zrap/chdes": {
+    "status": 200,
+    "content_type": "text/xml",
+    "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><chdes><ch1><name>Shade 5</name><group>Room D</group><icon>1432</icon><type>00</type><cat>5</cat></ch1><ch2><name>Shade 6</name><group>Room E</group><icon>1432</icon><type>00</type><cat>5</cat></ch2></chdes>"
+  },
+  "/zrap/chscan": {
+    "status": 200,
+    "content_type": "text/xml",
+    "body": "<?xml version=\"1.0\" encoding=\"US-ASCII\"?><chscan><ch1><val>0</val></ch1><ch2><val>0</val></ch2></chscan>"
+  },
+  "/zrap/rssi": {
+    "status": 200,
+    "content_type": "text/xml",
+    "body": "<?xml version=\"1.0\" encoding=\"US-ASCII\"?><rssi><dbm>-62</dbm></rssi>"
+  },
+  "/zrap/net/mac": {
+    "status": 200,
+    "content_type": "text/xml",
+    "body": "<?xml version=\"1.0\" encoding=\"US-ASCII\"?><mac>02:00:00:00:00:05</mac>"
+  },
+  "/zapi/smartfront/id": {
+    "status": 200,
+    "content_type": "application/json",
+    "body": "{\"btfu\":\"0,0,1000,1000,8501,8602,4501,4602\",\"sw\":\"01.01.08\",\"hw\":\"01.00.00\",\"sys\":\"ZEPTRION\",\"sid\":\"2\",\"type\":\"920-3305.36.ZZ\"}"
+  },
+  "/zapi/smartfront/led": {
+    "status": 200,
+    "content_type": "application/json",
+    "body": "[{\"id\":1,\"on\":false,\"rgb\":\"#000000\",\"effect\":\"#fffff\",\"bg\":\"#0f0f0f\"},{\"id\":2,\"on\":false,\"rgb\":\"#000000\",\"effect\":\"#fffff\",\"bg\":\"#0f0f0f\"},{\"id\":3,\"on\":false,\"rgb\":\"#005010\",\"effect\":\"#fffff\",\"bg\":\"#0f0f0f\"},{\"id\":4,\"on\":false,\"rgb\":\"#000000\",\"effect\":\"#fffff\",\"bg\":\"#0f0f0f\"},{\"id\":5,\"on\":false,\"rgb\":\"#000060\",\"effect\":\"#fffff\",\"bg\":\"#0f0f0f\"},{\"id\":6,\"on\":false,\"rgb\":\"#000000\",\"effect\":\"#fffff\",\"bg\":\"#0f0f0f\"},{\"id\":7,\"on\":false,\"rgb\":\"#000060\",\"effect\":\"#fffff\",\"bg\":\"#0f0f0f\"},{\"id\":8,\"on\":false,\"rgb\":\"#000000\",\"effect\":\"#fffff\",\"bg\":\"#0f0f0f\"}]"
+  },
+  "/zapi/smartfront/sensor": {
+    "status": 404,
+    "content_type": "text/html",
+    "body": "<!DOCTYPE html>\n<html>\n<body><center><h1>404 - file not found</h1><h3>Go <a href=\"/\">here</a> instead.</h3></center></body>\n</html>"
+  },
+  "/zapi/smartfront/sensors": {
+    "status": 200,
+    "content_type": "application/json",
+    "body": "{\"temp\":\"36.56C\",\"lux\":\"none\",\"hum\":\"none\"}"
+  },
+  "/zapi/smartbt/prgm": {
+    "status": 404,
+    "content_type": "text/html",
+    "body": "<!DOCTYPE html>\n<html>\n<body><center><h1>404 - file not found</h1><h3>Go <a href=\"/\">here</a> instead.</h3></center></body>\n</html>"
+  },
+  "/zrap/does-not-exist": {
+    "status": 404,
+    "content_type": "text/html",
+    "body": "<!DOCTYPE html>\n<html>\n<body><center><h1>404 - file not found</h1><h3>Go <a href=\"/\">here</a> instead.</h3></center></body>\n</html>"
+  }
+}

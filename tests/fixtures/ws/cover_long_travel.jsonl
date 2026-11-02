@@ -1,0 +1,9 @@
+{"t":0,"device":"device_03","frame":"{\"eid2\":{\"bta\":\".......P.\"}}"}
+{"t":0.3,"device":"device_03","frame":"{\"eid2\":{\"bta\":\".........\"}}"}
+{"t":0.3,"device":"device_03","frame":"{\"eid1\":{\"ch\":1,\"val\":100}}"}
+{"t":55.4,"device":"device_03","frame":"{\"eid2\":{\"bta\":\"......P..\"}}"}
+{"t":55.7,"device":"device_03","frame":"{\"eid2\":{\"bta\":\".........\"}}"}
+{"t":55.9,"device":"device_03","frame":"{\"eid1\":{\"ch\":1,\"val\":0}}"}
+{"t":58,"device":"device_03","frame":"{\"eid2\":{\"bta\":\"......P..\"}}"}
+{"t":58.3,"device":"device_03","frame":"{\"eid2\":{\"bta\":\".........\"}}"}
+{"t":58.4,"device":"device_03","frame":"{\"eid1\":{\"ch\":1,\"val\":100}}"}

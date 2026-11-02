@@ -1,0 +1,13 @@
+{"t":0,"device":"device_01","frame":"{\"eid2\":{\"bta\":\"....P....\"}}"}
+{"t":0.2,"device":"device_01","frame":"{\"eid2\":{\"bta\":\".........\"}}"}
+{"t":1,"device":"device_01","frame":"{\"eid2\":{\"bta\":\"..P......\"}}"}
+{"t":1.1,"device":"device_01","frame":"{\"eid1\":{\"ch\":2,\"val\":100}}"}
+{"t":1.2,"device":"device_01","frame":"{\"eid2\":{\"bta\":\".........\"}}"}
+{"t":2.5,"device":"device_01","frame":"{\"eid2\":{\"bta\":\".....P...\"}}"}
+{"t":2.8,"device":"device_01","frame":"{\"eid2\":{\"bta\":\".........\"}}"}
+{"t":2.8,"device":"device_01","frame":"{\"eid1\":{\"ch\":1,\"val\":0}}"}
+{"t":5.1,"device":"device_01","frame":"{\"eid2\":{\"bta\":\".......P.\"}}"}
+{"t":5.4,"device":"device_01","frame":"{\"eid2\":{\"bta\":\".........\"}}"}
+{"t":5.4,"device":"device_01","frame":"{\"eid1\":{\"ch\":2,\"val\":0}}"}
+{"t":6.1,"device":"device_01","frame":"{\"eid2\":{\"bta\":\"...P.....\"}}"}
+{"t":6.3,"device":"device_01","frame":"{\"eid2\":{\"bta\":\".........\"}}"}

@@ -1,0 +1,186 @@
+{
+  "device_01": {
+    "type": "3340-2-B",
+    "sw": "01.08.28 (Jun  1 2018 09:13:39)",
+    "categories": [
+      "1",
+      "1"
+    ],
+    "smartfront_type": "920-3302.36.ZU",
+    "btfu": "0,0,1000,1000,8501,8602,4501,4602",
+    "status": {
+      "/zrap/id": 200,
+      "/zrap/chdes": 200,
+      "/zrap/chscan": 200,
+      "/zrap/rssi": 200,
+      "/zrap/net/mac": 200,
+      "/zapi/smartfront/id": 200,
+      "/zapi/smartfront/led": 200,
+      "/zapi/smartfront/sensor": 404,
+      "/zapi/smartfront/sensors": 200,
+      "/zapi/smartbt/prgm": 200,
+      "/zrap/does-not-exist": 404
+    }
+  },
+  "device_02": {
+    "type": "3340-2-B",
+    "sw": "01.08.28 (Jun  1 2018 09:13:39)",
+    "categories": [
+      "5",
+      "-1"
+    ],
+    "smartfront_type": "920-3304.24.ZU",
+    "btfu": "0,0,1000,1000,0,0,8501,8602",
+    "status": {
+      "/zrap/id": 200,
+      "/zrap/chdes": 200,
+      "/zrap/chscan": 200,
+      "/zrap/rssi": 200,
+      "/zrap/net/mac": 200,
+      "/zapi/smartfront/id": 200,
+      "/zapi/smartfront/led": 200,
+      "/zapi/smartfront/sensor": 404,
+      "/zapi/smartfront/sensors": 200,
+      "/zapi/smartbt/prgm": 200,
+      "/zrap/does-not-exist": 404
+    }
+  },
+  "device_03": {
+    "type": "3340-2-B",
+    "sw": "01.08.28 (Jun  1 2018 09:13:39)",
+    "categories": [
+      "5",
+      "00"
+    ],
+    "smartfront_type": "920-3304.24.ZU",
+    "btfu": "0,0,1000,1000,0,0,8501,8602",
+    "status": {
+      "/zrap/id": 200,
+      "/zrap/chdes": 200,
+      "/zrap/chscan": 200,
+      "/zrap/rssi": 200,
+      "/zrap/net/mac": 200,
+      "/zapi/smartfront/id": 200,
+      "/zapi/smartfront/led": 200,
+      "/zapi/smartfront/sensor": 404,
+      "/zapi/smartfront/sensors": 200,
+      "/zapi/smartbt/prgm": 200,
+      "/zrap/does-not-exist": 404
+    }
+  },
+  "device_04": {
+    "type": "3340-2-B",
+    "sw": "01.08.28 (Jun  1 2018 09:13:39)",
+    "categories": [
+      "5",
+      "5"
+    ],
+    "smartfront_type": "920-3305.36.ZU",
+    "btfu": "0,0,1000,1000,8501,8602,4501,4602",
+    "status": {
+      "/zrap/id": 200,
+      "/zrap/chdes": 200,
+      "/zrap/chscan": 200,
+      "/zrap/rssi": 200,
+      "/zrap/net/mac": 200,
+      "/zapi/smartfront/id": 200,
+      "/zapi/smartfront/led": 200,
+      "/zapi/smartfront/sensor": 404,
+      "/zapi/smartfront/sensors": 200,
+      "/zapi/smartbt/prgm": 200,
+      "/zrap/does-not-exist": 404
+    }
+  },
+  "device_05": {
+    "type": "3340-2-B",
+    "sw": "01.08.28 (Jun  1 2018 09:13:39)",
+    "categories": [
+      "5",
+      "5"
+    ],
+    "smartfront_type": "920-3305.36.ZZ",
+    "btfu": "0,0,1000,1000,8501,8602,4501,4602",
+    "status": {
+      "/zrap/id": 200,
+      "/zrap/chdes": 200,
+      "/zrap/chscan": 200,
+      "/zrap/rssi": 200,
+      "/zrap/net/mac": 200,
+      "/zapi/smartfront/id": 200,
+      "/zapi/smartfront/led": 200,
+      "/zapi/smartfront/sensor": 404,
+      "/zapi/smartfront/sensors": 200,
+      "/zapi/smartbt/prgm": 404,
+      "/zrap/does-not-exist": 404
+    }
+  },
+  "device_06": {
+    "type": "3340-2-B",
+    "sw": "01.08.28 (Jun  1 2018 09:13:39)",
+    "categories": [
+      "5",
+      "5"
+    ],
+    "smartfront_type": "920-3305.36.ZU",
+    "btfu": "0,0,1000,1000,8501,8602,4501,4602",
+    "status": {
+      "/zrap/id": 200,
+      "/zrap/chdes": 200,
+      "/zrap/chscan": 200,
+      "/zrap/rssi": 200,
+      "/zrap/net/mac": 200,
+      "/zapi/smartfront/id": 200,
+      "/zapi/smartfront/led": 200,
+      "/zapi/smartfront/sensor": 404,
+      "/zapi/smartfront/sensors": 200,
+      "/zapi/smartbt/prgm": 200,
+      "/zrap/does-not-exist": 404
+    }
+  },
+  "device_07": {
+    "type": "3340-2-B",
+    "sw": "01.08.28 (Jun  1 2018 09:13:39)",
+    "categories": [
+      "5",
+      "-1"
+    ],
+    "smartfront_type": "920-3304.24.ZU",
+    "btfu": "0,0,1000,1000,0,0,8501,8602",
+    "status": {
+      "/zrap/id": 200,
+      "/zrap/chdes": 200,
+      "/zrap/chscan": 200,
+      "/zrap/rssi": 200,
+      "/zrap/net/mac": 200,
+      "/zapi/smartfront/id": 200,
+      "/zapi/smartfront/led": 200,
+      "/zapi/smartfront/sensor": 404,
+      "/zapi/smartfront/sensors": 200,
+      "/zapi/smartbt/prgm": 200,
+      "/zrap/does-not-exist": 404
+    }
+  },
+  "device_08": {
+    "type": "3340-2-B",
+    "sw": "01.08.28 (Jun  1 2018 09:13:39)",
+    "categories": [
+      "5",
+      "-1"
+    ],
+    "smartfront_type": "920-3304.24.ZU",
+    "btfu": "0,0,1000,1000,0,0,8501,8602",
+    "status": {
+      "/zrap/id": 200,
+      "/zrap/chdes": 200,
+      "/zrap/chscan": 200,
+      "/zrap/rssi": 200,
+      "/zrap/net/mac": 200,
+      "/zapi/smartfront/id": 200,
+      "/zapi/smartfront/led": 200,
+      "/zapi/smartfront/sensor": 404,
+      "/zapi/smartfront/sensors": 200,
+      "/zapi/smartbt/prgm": 200,
+      "/zrap/does-not-exist": 404
+    }
+  }
+}
