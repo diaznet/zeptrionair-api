@@ -76,6 +76,8 @@ jobs:
       - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
           repository-url: https://test.pypi.org/legacy/
+          # Allows re-running a release after a later step failed (files already uploaded).
+          skip-existing: true
 
   verify-testpypi:
     name: Verify TestPyPI install
@@ -90,17 +92,25 @@ jobs:
           VERSION: ${{ needs.build.outputs.version }}
         run: |
           uv venv /tmp/verify
+          installed=false
           for attempt in 1 2 3 4 5 6 7 8 9 10; do
-            if uv pip install --python /tmp/verify \
+            # --refresh: don't reuse a cached index page from a previous attempt that
+            # was fetched before TestPyPI listed the new version.
+            if uv pip install --refresh --python /tmp/verify \
                  --index https://test.pypi.org/simple/ \
                  --default-index https://pypi.org/simple/ \
                  --index-strategy unsafe-best-match \
                  "zeptrionair-api[cli]==${VERSION}"; then
+              installed=true
               break
             fi
             echo "Not available yet, retrying in 30 s ($attempt/10)"
             sleep 30
           done
+          if [ "$installed" != true ]; then
+            echo "::error::zeptrionair-api ${VERSION} could not be installed from TestPyPI"
+            exit 1
+          fi
           /tmp/verify/bin/zeptrion --version | grep -Fx "$VERSION"
           /tmp/verify/bin/python -c "import zeptrionair_api; assert zeptrionair_api.__version__ == '${VERSION}'"
 
