@@ -32,6 +32,7 @@ Requires Python 3.12 or newer.
 import asyncio
 from zeptrionair_api import ChannelUpdate, KeyEvent, ZeptrionDevice
 
+
 async def main() -> None:
     async with ZeptrionDevice("zapp-12345678.local") as device:
         info = await device.identify()
@@ -41,15 +42,16 @@ async def main() -> None:
             if channel.in_use:
                 print(channel.number, channel.category, channel.name)
 
-        await device.turn_on(1)          # light
-        await device.close_cover(2)      # blind: close fully
+        await device.turn_on(1)  # light
+        await device.close_cover(2)  # blind: close fully
         await device.move_open(2, 1500)  # blind: move up for 1.5 s
 
-        async for event in device.events():   # runs until you break
+        async for event in device.events():  # runs until you break
             if isinstance(event, ChannelUpdate):
                 print("channel", event.channel, "=", event.value)
             elif isinstance(event, KeyEvent) and event.pressed:
                 print("key", event.key, event.function)
+
 
 asyncio.run(main())
 ```

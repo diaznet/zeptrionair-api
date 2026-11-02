@@ -285,22 +285,48 @@ class FakeZeptrionDevice:
         await self.set_value(number, 100)
         self._tasks[number] = asyncio.create_task(self._run_cover(number, direction, seconds))
 
+    def _device_seconds(self, started: float) -> float:
+        """Simulated seconds since ``started`` (a loop time), measured on the real clock.
+
+        Progress is computed from elapsed time rather than by counting sleeps, because timer
+        resolution differs per platform (about 15 ms on Windows).
+        """
+        return (asyncio.get_running_loop().time() - started) / self.time_scale
+
+    async def _tick(self, remaining: float | None) -> None:
+        tick = 0.05 * self.time_scale
+        if remaining is not None:
+            tick = min(tick, max(remaining * self.time_scale, 0.0))
+        await asyncio.sleep(tick)
+
     async def _run_cover(self, number: int, direction: str, seconds: float | None) -> None:
         channel = self.channel(number)
-        step = 0.05
-        elapsed = 0.0
         sign = 1 if direction == "up" else -1
+        start_position = channel.position
+        started = asyncio.get_running_loop().time()
+
+        def update() -> float:
+            elapsed = self._device_seconds(started)
+            if seconds is not None:
+                elapsed = min(elapsed, seconds)
+            channel.position = min(
+                100.0, max(0.0, start_position + sign * elapsed / channel.travel_time * 100)
+            )
+            return elapsed
+
         try:
             while True:
-                await asyncio.sleep(step * self.time_scale)
-                elapsed += step
-                channel.position = min(
-                    100.0, max(0.0, channel.position + sign * step / channel.travel_time * 100)
-                )
-                at_end = channel.position in (0.0, 100.0)
+                elapsed = update()
+                at_end = channel.position >= 100.0 if sign > 0 else channel.position <= 0.0
                 if at_end or (seconds is not None and elapsed >= seconds - 1e-9):
                     break
+                to_end = (100.0 - channel.position if sign > 0 else channel.position) / 100
+                remaining = to_end * channel.travel_time
+                if seconds is not None:
+                    remaining = min(remaining, seconds - elapsed)
+                await self._tick(remaining)
         except asyncio.CancelledError:
+            update()
             return
         self._tasks.pop(number, None)
         channel.direction = None
@@ -316,19 +342,30 @@ class FakeZeptrionDevice:
     async def _run_dim(self, number: int, direction: str, seconds: float | None) -> None:
         """Ramp the value silently; the final value is pushed when dimming ends."""
         channel = self.channel(number)
-        step = 0.05
-        elapsed = 0.0
-        level = float(channel.value)
+        start_level = float(channel.value)
         sign = 1 if direction == "up" else -1
+        started = asyncio.get_running_loop().time()
+
+        def update() -> tuple[float, float]:
+            elapsed = self._device_seconds(started)
+            if seconds is not None:
+                elapsed = min(elapsed, seconds)
+            level = min(100.0, max(0.0, start_level + sign * elapsed / channel.travel_time * 100))
+            channel.value = round(level)
+            return elapsed, level
+
         try:
             while True:
-                await asyncio.sleep(step * self.time_scale)
-                elapsed += step
-                level = min(100.0, max(0.0, level + sign * step / channel.travel_time * 100))
-                channel.value = round(level)
-                if level in (0.0, 100.0) or (seconds is not None and elapsed >= seconds - 1e-9):
+                elapsed, level = update()
+                at_end = level >= 100.0 if sign > 0 else level <= 0.0
+                if at_end or (seconds is not None and elapsed >= seconds - 1e-9):
                     break
+                remaining = (100.0 - level if sign > 0 else level) / 100 * channel.travel_time
+                if seconds is not None:
+                    remaining = min(remaining, seconds - elapsed)
+                await self._tick(remaining)
         except asyncio.CancelledError:
+            update()
             return
         self._tasks.pop(number, None)
         channel.direction = None
