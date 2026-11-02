@@ -4,6 +4,7 @@ name: Release
 #   v1.2.3     -> TestPyPI, verify, PyPI (after approval in the "pypi" environment), GitHub Release
 #   v1.2.3rc1  -> TestPyPI and verify only, plus a GitHub pre-release (also a1/b1)
 # Publishing uses PyPI Trusted Publishing (OIDC); no API tokens are stored.
+# Nothing is built or published unless the full CI (ci.yml) passes for the tagged commit.
 
 on:
   push:
@@ -13,8 +14,15 @@ permissions:
   contents: read
 
 jobs:
+  ci:
+    name: CI (lint, types, tests, build)
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
   build:
     name: Build
+    needs: ci
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
