@@ -1,5 +1,27 @@
 # zeptrionAir for Home Assistant: full plan
 
+## Status (2026-11-02)
+
+| Milestone | Status |
+|---|---|
+| M0b fixtures, protocol.md | ✅ committed |
+| M1 library core | ✅ committed. 112 tests, 96 % coverage. Verified on hardware: WebSocket confirms in 30–50 ms; **the device doesn't answer WebSocket pings** (liveness via HTTP). |
+| M2 CLI + CI/release workflows | ✅ committed. **Not pushed, not released.** |
+| M3/M4 integration | ✅ committed. 33 tests, 94 % coverage, hassfest clean. The live smoke test passed against all 8 devices: setup and a light toggled in 124 ms. Covers were not moved on real hardware. |
+| M5 release | ⏳ waiting for the user: push both repos, tag `zeptrionair-api` `v0.1.0rc1` → `v0.1.0`, then tag `ha-zeptrionair` `v0.1.0`. |
+
+Deviations from the plan below, decided while building (each checked with Context7):
+- **Devices:**
+  - One hub device per zApp (Wi-Fi signal, keys, temperature), plus **one device per channel** named after the channel and with the channel's `group` as suggested area.
+  - HA 2026.7 replaced `via_device` with `via_device_id`; both are supported.
+  - HA 2026 prefixes entity IDs with the area (e.g. `cover.kitchen_kitchen_shade`). This is documented in the README.
+- **Minimum HA version 2025.2** (relocated `ServiceInfo` imports, `AddConfigEntryEntitiesCallback`). Uses `voluptuous`, which is still importable now that probatio has replaced it (HA 2026.9).
+- **Key events** use the event types `press`/`release`; `ButtonEventType` only exists from HA 2026.7.
+- **Brand icon** ships locally in `custom_components/zeptrionair/brand/` (supported from HA 2026.3). It's an original icon, not Feller's logo.
+- **`scripts/capture_fixtures.py` → `python -m zeptrionair_api.capture` / `zeptrion dump`.**
+- **Dependabot** can't edit `manifest.json`. It bumps `requirements_test.txt`, and CI (`scripts/check_versions.py`) fails until `manifest.json` has the same pin.
+- **HA tests** run in a Linux container (podman, `python:3.14-slim`), because HA 2026.10 requires Python ≥ 3.14.2.
+
 Workspace: `C:\Dev\zeptrionair`
 
 | Folder | Content |
