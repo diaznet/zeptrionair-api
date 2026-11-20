@@ -402,6 +402,59 @@ def watch(
         _run(runner)
 
 
+# ---------------------------------------------------------------- smartbutton
+
+
+@app.command("smartbutton")
+def program_smartbutton(
+    host: HostArg,
+    send: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--send",
+            help="TARGET:CHANNEL:COMMAND, e.g. zapp-12345678.local:1:toggle. Repeatable.",
+        ),
+    ] = None,
+    raw: Annotated[
+        list[str] | None,
+        typer.Option("--raw", help="Raw request in Feller format (JSON object). Repeatable."),
+    ] = None,
+    wait: Annotated[int, typer.Option(min=10, max=300, help="Seconds to press it.")] = 60,
+) -> None:
+    """Program a Smartbutton of HOST: press the blinking Smartbutton within the wait time."""
+    from .smartbutton import channel_request
+
+    requests: list[dict[str, str]] = []
+    for item in send or []:
+        rest, _, command = item.rpartition(":")
+        target, _, channel = rest.rpartition(":")
+        if not target or not channel.isdigit() or not command:
+            typer.echo(f"Error: --send must be TARGET:CHANNEL:COMMAND, got {item!r}", err=True)
+            raise typer.Exit(2)
+        try:
+            requests.append(channel_request(target, int(channel), command))
+        except ValueError as err:
+            typer.echo(f"Error: {err}", err=True)
+            raise typer.Exit(2) from err
+    for item in raw or []:
+        try:
+            parsed = json.loads(item)
+        except json.JSONDecodeError as err:
+            typer.echo(f"Error: --raw is not valid JSON: {err}", err=True)
+            raise typer.Exit(2) from err
+        requests.append({str(k): str(v) for k, v in parsed.items()})
+    if not requests:
+        typer.echo("Nothing to program: give --send and/or --raw.", err=True)
+        raise typer.Exit(2)
+
+    typer.echo(f"Press the blinking Smartbutton on {host} within {wait} s ...")
+    pressed = _with_device(host, lambda device: device.program_smartbutton(requests, wait=wait))
+    if not pressed:
+        typer.echo("No Smartbutton was pressed in time; nothing changed.")
+        raise typer.Exit(1)
+    typer.echo(f"Smartbutton programmed with {len(requests)} request(s).")
+
+
 # ----------------------------------------------------------------------- dump
 
 

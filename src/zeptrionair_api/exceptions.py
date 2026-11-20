@@ -31,3 +31,7 @@ class ZeptrionNotFoundError(ZeptrionResponseError):
 
 class ZeptrionParseError(ZeptrionError):
     """A response could not be understood."""
+
+
+class ZeptrionNotSupportedError(ZeptrionError):
+    """The device doesn't support this feature (e.g. no Smartbutton programming)."""

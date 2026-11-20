@@ -244,3 +244,38 @@ def test_discover(monkeypatch: pytest.MonkeyPatch) -> None:
     found.clear()
     code, output = invoke("discover")
     assert "No devices found" in output
+
+
+def test_smartbutton(host: str, threaded: ThreadedFake) -> None:
+    assert invoke("smartbutton", host)[0] == 2
+    assert invoke("smartbutton", host, "--send", "nonsense")[0] == 2
+    assert invoke("smartbutton", host, "--send", "h:1:reboot")[0] == 2
+    assert invoke("smartbutton", host, "--raw", "{not json")[0] == 2
+
+    async def press_when_blinking() -> None:
+        for _ in range(200):
+            if threaded.fake.programming["on"]:
+                await threaded.fake.press_key(4)
+                return
+            await asyncio.sleep(0.02)
+
+    future = asyncio.run_coroutine_threadsafe(press_when_blinking(), threaded.loop)
+    code, output = invoke(
+        "smartbutton",
+        host,
+        "--send",
+        "10.0.0.7:1:toggle",
+        "--raw",
+        '{"req": "GET", "loc": "10.0.0.9", "pth": "/x"}',
+        "--wait",
+        "20",
+    )
+    future.result(5)
+    assert code == 0, output
+    assert "programmed with 2 request(s)" in output
+    assert threaded.fake.smartbutton_programs[4][0]["bdy"] == "cmd1=toggle"
+
+    threaded.fake.time_scale = 0.01  # nobody presses: the 10 s wait passes quickly
+    code, output = invoke("smartbutton", host, "--send", "10.0.0.7:1:on", "--wait", "10")
+    assert code == 1
+    assert "No Smartbutton was pressed" in output

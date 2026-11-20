@@ -150,13 +150,20 @@ async def test_cover_commands(fake_cover: FakeZeptrionDevice) -> None:
         assert channel.value == 0
         assert 20 < channel.position < 100
 
+        # The blind last left the bottom: the scene is (bottom, net time up from there).
+        stored_at = channel.position
         await client.store_scene(1, 1)
+        assert channel.cover_scenes[1][0] == "down"
         await client.open(1)
         await wait_for(lambda: channel.value == 0)
         assert channel.position == 100.0
+        assert channel.last_end == "up"
+        # Recall from the top: down to the bottom, pause, then the net time back up.
         await client.recall_scene(1, 1)
+        await wait_for(lambda: channel.position == 0.0)
+        await wait_for(lambda: 1 not in fake_cover._scene_tasks)
         await wait_for(lambda: channel.value == 0)
-        assert 20 < channel.position < 100
+        assert channel.position == pytest.approx(stored_at, abs=2.0)
         await client.delete_scene(1, 1)
         await client.move_close(1, 100)
         await wait_for(lambda: channel.value == 0)

@@ -141,6 +141,8 @@ Present only when a Smartfront is fitted; otherwise the endpoints return 404.
 
 **Smartbutton programming** (`/zapi/smartbt/prgm|prgn|prgs`): [PDF] programs a key to send HTTP requests. [OBS] `GET /zapi/smartbt/prgm` returns `{"on":false,"ntm":60}` on most fronts, but **404 on front type `920-3305.36.ZZ`**, so probe before use. The PDF also writes the path once as `zapi/smartfront/prgn`; [OBS] `/zapi/smartfront/prgm` is 404 on both front types tested (2026-11-20), so `/zapi/smartbt` is the path that works.
 
+Programming sequence [PDF]: `POST prgm` `{"on":true,"ntm":<s>}` (the Smartbuttons blink) → `GET prgn` answers `{"prg":true}` once one is pressed (`false` after `ntm` s) → `POST prgs` with a JSON array of requests (`req`, `loc`, `pth`, `bdy`, optional `typ`, `hdr`, `prt`) → `POST prgm` `{"on":false}`. The whole `prgs` request, **HTTP header included, must not exceed 730 bytes**, so a client should send minimal headers. An attribute equal to the previous element's may be left out and is then inherited. Not yet verified on our hardware (it overwrites a Smartbutton's programme).
+
 ### 4.9 Other endpoints (not used by this library)
 | Endpoint | Purpose |
 |---|---|
@@ -182,6 +184,17 @@ eid2 bta "........."   release (~0.1–0.3 s later)
 eid1 ch1 val 100        resulting state change
 ```
 A Smartbutton press produces `eid2` on the device that was pressed, and `eid1` on whatever device its programmed request targets, which may be a different device.
+
+### 5.4 Covers in practice [OBS]
+
+Measured on one shade (3340-2-B, 01.08.28), 2026-11-20:
+
+- **Full travel:** 35.8 s down, 36.7 s up (from the command until `val` 0). The motor runs about 1 s longer than the distance needs: from 8 s below the top, `open` took 9.3 s.
+- **At an end stop, a command towards it is ignored:** `open` on a fully open blind sends no `eid1` at all.
+- **Timed commands are exact:** `move_close_8000` gave `val` 100 → 0 after 8.0 s.
+- **Scenes** store the end stop the blind came from plus the net motor time from there. A recall:
+  - **from that end stop:** one run for the net time (stored after 8.0 s down from the top → a recall from the top ran 8.0 s down). The motor started about 0.7 s after the command;
+  - **from anywhere else:** a running motor is stopped first (`val` 0). Then it runs to the stored end stop (`val` 100 … `val` 0), and **about 0.5 s later** runs back for the net time (`val` 100 … `val` 0). That's two separate runs.
 
 ## 6. Key functions (`btfu`) [HEUR]
 

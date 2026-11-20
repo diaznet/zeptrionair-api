@@ -15,6 +15,7 @@ from .exceptions import (
     ZeptrionConnectionError,
     ZeptrionError,
     ZeptrionNotFoundError,
+    ZeptrionNotSupportedError,
     ZeptrionParseError,
     ZeptrionResponseError,
     ZeptrionTimeoutError,
@@ -33,6 +34,7 @@ from .models import (
     SensorValues,
     SmartfrontInfo,
 )
+from .smartbutton import SmartbuttonProgramTooLongError, channel_request
 
 try:
     from ._version import __version__
@@ -54,15 +56,18 @@ __all__ = [
     "KeyFunction",
     "LedState",
     "SensorValues",
+    "SmartbuttonProgramTooLongError",
     "SmartfrontInfo",
     "ZeptrionConnectionError",
     "ZeptrionDevice",
     "ZeptrionError",
     "ZeptrionNotFoundError",
+    "ZeptrionNotSupportedError",
     "ZeptrionParseError",
     "ZeptrionResponseError",
     "ZeptrionTimeoutError",
     "__version__",
+    "channel_request",
     "scene_command",
     "timed_command",
     "validate_command",

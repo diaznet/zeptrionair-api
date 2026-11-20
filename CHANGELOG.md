@@ -4,6 +4,23 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [0.2.0]
+
+### Added
+- **Smartbutton programming:** `ZeptrionDevice.program_smartbutton()` (blink, wait for the press, store, switch programming mode off), `supports_smartbutton_programming()`, and the `zeptrionair_api.smartbutton` helpers (`channel_request`, merging commands per zApp, compaction, the 730-byte size check made before anything blinks). CLI: `zeptrion smartbutton`.
+- `ZeptrionNotSupportedError`, `SmartbuttonProgramTooLongError`.
+- `request(..., raw_json=...)`: sends a prepared JSON body with minimal headers.
+- `testing.FakeZeptrionDevice`:
+  - Feller scene semantics for covers (end stop + net time; a recall from elsewhere runs to that end stop, pauses 0.5 s, runs back) and commands towards the end stop the blind is at being ignored, both observed on real devices;
+  - slats (`FakeChannel.tilt_time`);
+  - hold-to-move wall keys (`hold_to_move=True`);
+  - Smartbutton programming endpoints with the size limit;
+  - LED background colours kept.
+- `docs/protocol.md`: cover behaviour measured on a real shade (travel times, timed commands, scene replay), Smartbutton programming sequence.
+
+### Fixed
+- `FakeZeptrionDevice.stop()` waits for its simulation tasks to end.
+
 ## [0.1.1]
 
 ### Changed
@@ -35,6 +52,7 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 - Simulated device for tests (`zeptrionair_api.testing.FakeZeptrionDevice`).
 - Protocol reference `docs/protocol.md`.
 
-[Unreleased]: https://github.com/diaznet/zeptrionair-api/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/diaznet/zeptrionair-api/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/diaznet/zeptrionair-api/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/diaznet/zeptrionair-api/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/diaznet/zeptrionair-api/releases/tag/v0.1.0

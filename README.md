@@ -12,7 +12,7 @@ It is the library behind the Home Assistant integration [ha-zeptrionair](https:/
 - Read device info, channels (with their category: light, dimmer, blind, awning) and states.
 - Control lights, dimmers and covers: on/off/toggle, open/close/stop, timed moves and dims, and scenes.
 - **Real-time events** over the device WebSocket: channel changes, plus wall-key presses with their decoded function. Falls back to the `chnotify` long poll, and reconnects automatically.
-- Smartfront: key layout, temperature/light/humidity sensors, LED background colours.
+- Smartfront: key layout, temperature/light/humidity sensors, LED background colours, and **Smartbutton programming** (the button then sends its commands directly between the zApps).
 - mDNS discovery.
 - `zeptrion` CLI for scripting and debugging.
 - A simulated device (`zeptrionair_api.testing`) for your own tests.
@@ -75,6 +75,7 @@ zeptrion dim HOST CH up|down [--ms 800]
 zeptrion scene HOST CH recall|store|delete N
 zeptrion send HOST CH move_open_2000      # any valid raw command
 zeptrion rename HOST CH --name "Kitchen" --group "Ground floor"
+zeptrion smartbutton HOST --send TARGET:CH:CMD [--send ...] [--raw JSON] [--wait 60]
 zeptrion watch HOST [HOST ...] [--json]   # live channel changes and key presses
 zeptrion dump OUTDIR HOST [HOST ...]      # anonymised fixtures for bug reports
 ```

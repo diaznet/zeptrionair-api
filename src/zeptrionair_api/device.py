@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
+import json
 import logging
 from collections.abc import AsyncIterator, Mapping, Sequence
 from types import TracebackType
@@ -10,7 +12,7 @@ from typing import Any, Literal, Self
 
 import aiohttp
 
-from . import parsing
+from . import parsing, smartbutton
 from .const import (
     CHANNEL_FIELD_LIMITS,
     DEFAULT_MAX_CONCURRENT_REQUESTS,
@@ -25,6 +27,7 @@ from .exceptions import (
     ZeptrionConnectionError,
     ZeptrionError,
     ZeptrionNotFoundError,
+    ZeptrionNotSupportedError,
     ZeptrionResponseError,
     ZeptrionTimeoutError,
 )
@@ -120,6 +123,7 @@ class ZeptrionDevice:
         *,
         data: Mapping[str, str] | None = None,
         json_body: Any = None,
+        raw_json: str | None = None,
         timeout: float | None = None,
         limit_concurrency: bool = True,
     ) -> str:
@@ -127,15 +131,18 @@ class ZeptrionDevice:
 
         GET requests are retried on connection errors and 5xx responses. POST requests are never
         retried, because commands such as ``toggle`` are not idempotent. A 302 answer to a POST
-        is the device's normal success response.
+        is the device's normal success response. ``raw_json`` sends a prepared JSON string with
+        minimal headers (the zApp limits some requests to 730 bytes including the header).
         """
         attempts = 1 + (_GET_RETRIES if method == "GET" else 0)
         for attempt in range(attempts):
             try:
                 if limit_concurrency:
                     async with self._semaphore:
-                        return await self._request_once(method, path, data, json_body, timeout)
-                return await self._request_once(method, path, data, json_body, timeout)
+                        return await self._request_once(
+                            method, path, data, json_body, raw_json, timeout
+                        )
+                return await self._request_once(method, path, data, json_body, raw_json, timeout)
             except (ZeptrionConnectionError, ZeptrionResponseError) as err:
                 retryable = isinstance(err, ZeptrionConnectionError) or (
                     isinstance(err, ZeptrionResponseError) and err.status >= 500
@@ -152,18 +159,27 @@ class ZeptrionDevice:
         path: str,
         data: Mapping[str, str] | None,
         json_body: Any,
+        raw_json: str | None,
         timeout: float | None,
     ) -> str:
         url = f"{self.base_url}{path}"
         client_timeout = aiohttp.ClientTimeout(total=timeout or self._timeout)
+        extra: dict[str, Any] = {}
+        if raw_json is not None:
+            extra = {
+                "data": raw_json.encode("utf-8"),
+                "headers": {"Content-Type": "application/json"},
+                "skip_auto_headers": ("User-Agent", "Accept", "Accept-Encoding"),
+            }
+        else:
+            extra = {"data": dict(data) if data is not None else None, "json": json_body}
         try:
             async with self.session.request(
                 method,
                 url,
-                data=dict(data) if data is not None else None,
-                json=json_body,
                 allow_redirects=False,
                 timeout=client_timeout,
+                **extra,
             ) as response:
                 body = await response.text(errors="replace")
                 status = response.status
@@ -303,6 +319,51 @@ class ZeptrionDevice:
         """Set Smartfront LED background colours (``{led_id: "#rrggbb"}``)."""
         payload = [{"id": led, "bg": color} for led, color in sorted(colors.items())]
         await self.request("POST", "/zapi/smartfront/led", json_body=payload)
+
+    # ---------------------------------------------------- Smartbutton programming
+
+    async def supports_smartbutton_programming(self) -> bool:
+        return await self._get_optional(f"{smartbutton.SMARTBUTTON_PATH}/prgm") is not None
+
+    async def program_smartbutton(
+        self,
+        requests: Sequence[Mapping[str, str]],
+        *,
+        wait: int = 60,
+    ) -> bool:
+        """Program the Smartbutton pressed next on this zApp with ``requests``.
+
+        The Smartbuttons blink for ``wait`` seconds; the first one pressed gets the programme
+        (its previous programme is replaced and can't be read back). Returns ``False`` if no
+        Smartbutton was pressed in time. Raises ``SmartbuttonProgramTooLongError`` before
+        anything blinks if the programme doesn't fit, and ``ZeptrionNotSupportedError`` if the
+        front can't program Smartbuttons. Build requests with
+        :func:`zeptrionair_api.smartbutton.channel_request`.
+        """
+        if not 10 <= wait <= 300:
+            raise ValueError("wait must be between 10 and 300 seconds")
+        body = smartbutton.encode(requests)
+        size = smartbutton.request_size(self._host, body)
+        if size > smartbutton.MAX_REQUEST_BYTES:
+            raise smartbutton.SmartbuttonProgramTooLongError(size)
+        if not await self.supports_smartbutton_programming():
+            raise ZeptrionNotSupportedError(f"{self._host} cannot program Smartbuttons")
+        base = smartbutton.SMARTBUTTON_PATH
+        await self.request("POST", f"{base}/prgm", json_body={"on": True, "ntm": wait})
+        try:
+            answer = await self.request(
+                "GET", f"{base}/prgn", timeout=wait + 15, limit_concurrency=False
+            )
+            try:
+                pressed = bool(json.loads(answer).get("prg"))
+            except (ValueError, AttributeError):
+                pressed = False
+            if pressed:
+                await self.request("POST", f"{base}/prgs", raw_json=body)
+            return pressed
+        finally:
+            with contextlib.suppress(ZeptrionError):
+                await self.request("POST", f"{base}/prgm", json_body={"on": False})
 
     # ------------------------------------------------------------- convenience
 

@@ -13,8 +13,13 @@ Behaviour follows what was observed on real devices (docs/protocol.md):
   real devices are reported to do) only report ``100`` while lit and ``0`` when off. Pass
   ``dimmer_reports_level=True`` to report the level instead;
 - covers: the value is 100 while the motor runs and 0 when it stops. The motor stops by itself
-  after ``travel_time`` (scaled by ``time_scale``), and an opposite key press while moving stops
-  it;
+  at the end stops (``travel_time`` for a full run, scaled by ``time_scale``), a command towards
+  an end stop the blind is already at is ignored, and an opposite key press while moving stops
+  it. With ``tilt_time``, the first part of a run after a change of direction turns the slats.
+  Scenes store the end stop the blind came from plus the net time from there; a recall from
+  elsewhere runs to that end stop, pauses 0.5 s and runs back (both observed on real devices).
+  ``hold_to_move=True`` makes wall keys move a cover only while held;
+- Smartbutton programming (``/zapi/smartbt/prgm|prgn|prgs``, 730-byte limit) and LED colours;
 - every change is pushed to WebSocket clients as ``eid1``, and :meth:`press_key` sends ``eid2``;
 - ``chnotify`` answers on the next change, or after ``notify_timeout`` seconds.
 """
@@ -60,8 +65,15 @@ class FakeChannel:
     position: float = 100.0
     #: Seconds for a full cover travel or a full 0-100 dim (before ``time_scale``).
     travel_time: float = 10.0
-    scenes: dict[int, float] = field(default_factory=dict)
+    scenes: dict[int, float] = field(default_factory=dict)  # lights: stored level
     direction: str | None = None  # "up"/"down" while a cover moves or a dimmer ramps
+    #: Covers: the end stop last reached ("up"/"down"), the slats and their turning time.
+    last_end: str | None = "up"
+    tilt_time: float = 0.0
+    tilt: float = 100.0  # 0 = slats closed, 100 = open
+    last_motion: str | None = None
+    #: Covers: scene -> (end stop it was stored from, net seconds from there).
+    cover_scenes: dict[int, tuple[str, float]] = field(default_factory=dict)
 
     @property
     def is_cover(self) -> bool:
@@ -92,6 +104,7 @@ class FakeZeptrionDevice:
         time_scale: float = 1.0,
         notify_timeout: float = 30.0,
         dimmer_reports_level: bool = False,
+        hold_to_move: bool = False,
     ) -> None:
         self.serial = serial
         self.type = type
@@ -112,6 +125,18 @@ class FakeZeptrionDevice:
         self.time_scale = time_scale
         self.notify_timeout = notify_timeout
         self.dimmer_reports_level = dimmer_reports_level
+        self.hold_to_move = hold_to_move
+        #: Smartfront LEDs (``bg`` is what clients may change).
+        self.leds: list[dict[str, Any]] = [
+            {"id": i, "on": False, "rgb": "#000000", "effect": "#fffff", "bg": "#000020"}
+            for i in range(1, 9)
+        ]
+        #: Smartbutton programming: state, the key pressed during programming, stored programmes.
+        self.programming: dict[str, Any] = {"on": False, "ntm": 60}
+        self.smartbutton_programs: dict[int, Any] = {}
+        self._programming_key: asyncio.Future[int] | None = None
+        self._last_programmed_key: int | None = None
+        self._scene_tasks: dict[int, asyncio.Task[None]] = {}
 
         #: Requests received: (method, path, body).
         self.requests: list[tuple[str, str, str]] = []
@@ -158,9 +183,14 @@ class FakeZeptrionDevice:
         self.port = sockets[0].getsockname()[1]
 
     async def stop(self) -> None:
-        for task in self._tasks.values():
+        tasks = [*self._tasks.values(), *self._scene_tasks.values()]
+        for task in tasks:
             task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
         self._tasks.clear()
+        self._scene_tasks.clear()
+        if self._programming_key is not None and not self._programming_key.done():
+            self._programming_key.cancel()
         await self.drop_websockets()
         if self._runner is not None:
             await self._runner.cleanup()
@@ -210,16 +240,30 @@ class FakeZeptrionDevice:
         bta = ["."] * 9
         bta[key - 1] = "P"
         await self._broadcast({"eid2": {"bta": "".join(bta)}})
-        if hold:
-            await asyncio.sleep(hold * self.time_scale)
-        await self._broadcast({"eid2": {"bta": "." * 9}})
+        if self._programming_key is not None and not self._programming_key.done():
+            self._programming_key.set_result(key)  # programming mode: this key gets the programme
+            await self._broadcast({"eid2": {"bta": "." * 9}})
+            return
+        function = None
         if self.btfu:
             keys = parse_btfu(self.btfu)
             function = keys[key - 1] if key <= len(keys) else None
-            if function is not None and function.kind == "channel" and function.direction:
-                for number in sorted(function.channels):
-                    if number <= len(self.channels):
-                        await self._key_action(number, function.direction)
+        channels: list[int] = []
+        direction = None
+        if function is not None and function.kind == "channel" and function.direction:
+            channels = [n for n in sorted(function.channels) if n <= len(self.channels)]
+            direction = function.direction
+        held = [n for n in channels if self.hold_to_move and self.channel(n).is_cover]
+        for number in held:  # hold-to-move: the cover runs while the key is held
+            await self._start_cover(number, direction or "up", None)
+        if hold:
+            await asyncio.sleep(hold * self.time_scale)
+        await self._broadcast({"eid2": {"bta": "." * 9}})
+        for number in held:
+            await self._stop_motion(number)
+        for number in channels:
+            if number not in held:
+                await self._key_action(number, direction or "up")
 
     async def _key_action(self, number: int, direction: str) -> None:
         channel = self.channel(number)
@@ -241,6 +285,9 @@ class FakeZeptrionDevice:
 
     async def _command(self, number: int, cmd: str) -> bool:
         channel = self.channel(number)
+        scene_task = self._scene_tasks.pop(number, None)
+        if scene_task is not None:
+            scene_task.cancel()
         if cmd in ("on", "off", "toggle") and not channel.is_cover:
             await self._stop_motion(number, notify=False)
             current = channel.level if channel.is_dimmer else channel.value
@@ -267,21 +314,25 @@ class FakeZeptrionDevice:
         elif match := _SCENE_RE.match(cmd):
             action, scene = match[1], int(match[2])
             if channel.is_cover:
-                current = channel.position
-            else:
-                current = channel.level if channel.is_dimmer else float(channel.value)
+                if action == "store":
+                    end = channel.last_end or "up"
+                    away = channel.position if end == "down" else 100.0 - channel.position
+                    channel.cover_scenes[scene] = (end, away / 100 * channel.travel_time)
+                elif action == "delete":
+                    channel.cover_scenes.pop(scene, None)
+                elif scene in channel.cover_scenes:
+                    end, seconds = channel.cover_scenes[scene]
+                    self._scene_tasks[number] = asyncio.create_task(
+                        self._replay_cover_scene(number, end, seconds)
+                    )
+                return True
+            current = channel.level if channel.is_dimmer else float(channel.value)
             if action == "store":
                 channel.scenes[scene] = current
             elif action == "delete":
                 channel.scenes.pop(scene, None)
             elif scene in channel.scenes:
-                target = channel.scenes[scene]
-                if channel.is_cover:
-                    direction = "up" if target > channel.position else "down"
-                    seconds = abs(target - channel.position) / 100 * channel.travel_time
-                    await self._start_cover(number, direction, seconds)
-                else:
-                    await self.set_level(number, target)
+                await self.set_level(number, channel.scenes[scene])
         else:
             return False
         return True
@@ -306,9 +357,28 @@ class FakeZeptrionDevice:
         async with self._changed:
             self._changed.notify_all()
 
-    async def _start_cover(self, number: int, direction: str, seconds: float | None) -> None:
-        await self._stop_motion(number, notify=False)
+    async def _replay_cover_scene(self, number: int, end: str, seconds: float) -> None:
+        """Feller scene replay: to the stored end stop (if not there), pause, back for the time."""
         channel = self.channel(number)
+        if channel.direction is not None:
+            await self._stop_motion(number)
+        at_end = channel.position >= 100.0 if end == "up" else channel.position <= 0.0
+        if not at_end:
+            await self._start_cover(number, end, None)
+            task = self._tasks.get(number)
+            if task is not None:
+                await task
+            await asyncio.sleep(0.5 * self.time_scale)
+        await self._start_cover(number, "down" if end == "up" else "up", seconds)
+        self._scene_tasks.pop(number, None)
+
+    async def _start_cover(self, number: int, direction: str, seconds: float | None) -> None:
+        channel = self.channel(number)
+        at_end = channel.position >= 100.0 if direction == "up" else channel.position <= 0.0
+        turning = channel.tilt_time > 0 and channel.last_motion != direction
+        if at_end and not turning and channel.direction is None:
+            return  # a command towards the end stop the blind is at does nothing
+        await self._stop_motion(number, notify=False)
         channel.direction = direction
         await self.set_value(number, 100)
         self._tasks[number] = asyncio.create_task(self._run_cover(number, direction, seconds))
@@ -331,14 +401,23 @@ class FakeZeptrionDevice:
         channel = self.channel(number)
         sign = 1 if direction == "up" else -1
         start_position = channel.position
+        start_tilt = channel.tilt
+        # The slats turn first: from the current angle to fully open (up) / closed (down).
+        tilt_target = 100.0 if sign > 0 else 0.0
+        tilt_seconds = abs(tilt_target - start_tilt) / 100 * channel.tilt_time
+        channel.last_motion = direction
         started = asyncio.get_running_loop().time()
 
         def update() -> float:
             elapsed = self._device_seconds(started)
             if seconds is not None:
                 elapsed = min(elapsed, seconds)
+            if channel.tilt_time > 0:
+                turned = min(elapsed, tilt_seconds) / channel.tilt_time * 100
+                channel.tilt = min(100.0, max(0.0, start_tilt + sign * turned))
+            moved = max(0.0, elapsed - tilt_seconds)
             channel.position = min(
-                100.0, max(0.0, start_position + sign * elapsed / channel.travel_time * 100)
+                100.0, max(0.0, start_position + sign * moved / channel.travel_time * 100)
             )
             return elapsed
 
@@ -349,13 +428,15 @@ class FakeZeptrionDevice:
                 if at_end or (seconds is not None and elapsed >= seconds - 1e-9):
                     break
                 to_end = (100.0 - channel.position if sign > 0 else channel.position) / 100
-                remaining = to_end * channel.travel_time
+                remaining = to_end * channel.travel_time + max(0.0, tilt_seconds - elapsed)
                 if seconds is not None:
                     remaining = min(remaining, seconds - elapsed)
                 await self._tick(remaining)
         except asyncio.CancelledError:
             update()
             return
+        if channel.position >= 100.0 or channel.position <= 0.0:
+            channel.last_end = "up" if channel.position >= 100.0 else "down"
         self._tasks.pop(number, None)
         channel.direction = None
         await self.set_value(number, 0)
@@ -505,24 +586,15 @@ class FakeZeptrionDevice:
             case ["zapi", "smartfront", "sensors"] if self.btfu is not None:
                 return self._json(self.sensors)
             case ["zapi", "smartfront", "led"] if self.btfu is not None:
-                return self._json(
-                    [
-                        {
-                            "id": i,
-                            "on": False,
-                            "rgb": "#000000",
-                            "effect": "#fffff",
-                            "bg": "#000020",
-                        }
-                        for i in range(1, 9)
-                    ]
-                )
+                return self._json(self.leds)
             case ["zapi", "smartbt", "prgm"] if self.btfu is not None and self.smartbuttons:
-                return self._json({"on": False, "ntm": 60})
+                return self._json(self.programming)
+            case ["zapi", "smartbt", "prgn"] if self.btfu is not None and self.smartbuttons:
+                return self._json({"prg": await self._wait_programming_press()})
         return self._not_found()
 
     async def _post(self, request: web.Request, path: str, body: str) -> web.Response:
-        form = await request.post() if body and "json" not in request.content_type else {}
+        form: Any = await request.post() if body and "json" not in request.content_type else {}
         parts = path.strip("/").split("/")
         match parts:
             case ["zrap", "chctrl", ch] if (n := self._channel_number(ch)) is not None:
@@ -541,10 +613,47 @@ class FakeZeptrionDevice:
                 if "cat" in form:
                     channel.category = str(form["cat"])
             case ["zapi", "smartfront", "led"] if self.btfu is not None:
-                pass
+                for item in json.loads(body):
+                    for led in self.leds:
+                        if led["id"] == item.get("id") and "bg" in item:
+                            led["bg"] = item["bg"]
+            case ["zapi", "smartbt", "prgm"] if self.btfu is not None and self.smartbuttons:
+                data = json.loads(body)
+                self.programming = {"on": bool(data.get("on")), "ntm": int(data.get("ntm", 60))}
+                if self.programming["on"]:
+                    self._programming_key = asyncio.get_running_loop().create_future()
+                elif self._programming_key is not None and not self._programming_key.done():
+                    self._programming_key.cancel()
+                return self._json(self.programming)
+            case ["zapi", "smartbt", "prgs"] if self.btfu is not None and self.smartbuttons:
+                size = (
+                    len(request.raw_path)
+                    + len(body.encode("utf-8"))
+                    + sum(len(k) + len(v) + 4 for k, v in request.raw_headers)
+                    + 16
+                )
+                if size > 730 or self._last_programmed_key is None:
+                    return web.Response(status=400, text="programme rejected")
+                self.smartbutton_programs[self._last_programmed_key] = json.loads(body)
+                self._last_programmed_key = None
+                return self._json({"ok": True})
             case _:
                 return self._not_found()
         raise web.HTTPFound("/")
+
+    async def _wait_programming_press(self) -> bool:
+        """``prgn``: answers when a key is pressed in programming mode or the time runs out."""
+        future = self._programming_key
+        if future is None or not self.programming["on"]:
+            return False
+        try:
+            key = await asyncio.wait_for(
+                asyncio.shield(future), self.programming["ntm"] * self.time_scale
+            )
+        except (TimeoutError, asyncio.CancelledError):
+            return False
+        self._last_programmed_key = key
+        return True
 
     async def _websocket(self, request: web.Request) -> web.WebSocketResponse:
         ws = web.WebSocketResponse()
