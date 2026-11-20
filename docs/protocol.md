@@ -5,6 +5,7 @@ This document describes the local HTTP and WebSocket interface of Feller zeptrio
 - **[PDF]** Feller's official "zApp API" document `10.ZEPAPI-E.1612` (Version 1.0), in this folder as `10ZEPAPIE1612.pdf`;
 - **[OBS]** behaviour observed on real devices (3340-2-B, firmware 01.08.28, captured 2026-11-02), with fixtures in `tests/fixtures/`;
 - **[HEUR]** inferences drawn from those observations. These may not hold on other hardware.
+- **[UNVERIFIED]** behaviour reported for hardware we couldn't test ourselves. Confirmations or corrections are welcome.
 
 The WebSocket endpoint and its message format are **not documented by Feller** at all; everything about them is [OBS].
 
@@ -79,7 +80,8 @@ To write: `POST /zrap/chdes/ch1` with body `name=Kitchen&group=First+floor`.
 ```xml
 <chscan><ch1><val>0</val></ch1><ch2><val>100</val></ch2></chscan>
 ```
-- Lights: 0 = off, 100 = on. Dimmers: 0–100 (HEUR).
+- Lights: 0 = off, 100 = on.
+- Dimmers [UNVERIFIED]: reported to return **100 whenever lit, whatever the brightness**, and 0 when off, so the brightness can't be read back. Clients have to track it themselves (optimistically). A full dim from 0 to 100 % is reported to take about **3.4 s**.
 - [PDF] says "-1 for blinds". [OBS] On 01.08.28, covers report **0 = motor stopped, 100 = motor running**. See section 5.
 
 ### 4.4 `GET /zrap/chnotify`: long poll
@@ -137,7 +139,7 @@ Present only when a Smartfront is fitted; otherwise the endpoints return 404.
 - [PDF] Only `bg` (background colour) may be changed. `on`, `rgb` and `effect` are managed by the device itself.
 - Set: `POST` a JSON array, e.g. `[{"id":2,"bg":"#220000"}]`.
 
-**Smartbutton programming** (`/zapi/smartbt/prgm|prgn|prgs`): [PDF] programs a key to send HTTP requests. [OBS] `GET /zapi/smartbt/prgm` returns `{"on":false,"ntm":60}` on most fronts, but **404 on front type `920-3305.36.ZZ`**, so probe before use.
+**Smartbutton programming** (`/zapi/smartbt/prgm|prgn|prgs`): [PDF] programs a key to send HTTP requests. [OBS] `GET /zapi/smartbt/prgm` returns `{"on":false,"ntm":60}` on most fronts, but **404 on front type `920-3305.36.ZZ`**, so probe before use. The PDF also writes the path once as `zapi/smartfront/prgn`; [OBS] `/zapi/smartfront/prgm` is 404 on both front types tested (2026-11-20), so `/zapi/smartbt` is the path that works.
 
 ### 4.9 Other endpoints (not used by this library)
 | Endpoint | Purpose |
@@ -161,7 +163,7 @@ Present only when a Smartfront is fitted; otherwise the endpoints return 404.
 ```json
 {"eid1":{"ch":1,"val":100}}
 ```
-- Lights: 0 / 100.
+- Lights: 0 / 100. Dimmers [UNVERIFIED]: reported to send 100 at any lit level (see 4.3).
 - **Covers: 100 = motor started, 0 = motor stopped.** This happens when a command arrives, when a wall key is pressed, and when the motor stops by itself at its end position.
 - The direction is **not** included. It has to come from the command sent or from the key that was pressed (section 6).
 

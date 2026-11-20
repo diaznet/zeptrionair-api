@@ -4,6 +4,15 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [0.1.1]
+
+### Changed
+- `testing.FakeZeptrionDevice`: dimmers now behave as real dimmers are reported to: the API reports `100` while lit (whatever the brightness) and `0` when off. The actual level is in `FakeChannel.level`; `dimmer_reports_level=True` restores the old behaviour.
+- `docs/protocol.md`: dimmer reporting and full dim time (marked [UNVERIFIED]); Smartbutton programming paths verified (only `/zapi/smartbt` works).
+
+### Added
+- `FakeZeptrionDevice.set_level()` and `reported_value()`.
+
 ## [0.1.0]
 
 ### Added
@@ -26,5 +35,6 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 - Simulated device for tests (`zeptrionair_api.testing.FakeZeptrionDevice`).
 - Protocol reference `docs/protocol.md`.
 
-[Unreleased]: https://github.com/diaznet/zeptrionair-api/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/diaznet/zeptrionair-api/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/diaznet/zeptrionair-api/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/diaznet/zeptrionair-api/releases/tag/v0.1.0

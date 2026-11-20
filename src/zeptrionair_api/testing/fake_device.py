@@ -9,7 +9,9 @@ Example::
 
 Behaviour follows what was observed on real devices (docs/protocol.md):
 
-- lights: ``on``/``off``/``toggle``; dimmers ramp their value while dimming;
+- lights: ``on``/``off``/``toggle``. Dimmers ramp their ``level`` while dimming, but (like the
+  real devices are reported to do) only report ``100`` while lit and ``0`` when off. Pass
+  ``dimmer_reports_level=True`` to report the level instead;
 - covers: the value is 100 while the motor runs and 0 when it stops. The motor stops by itself
   after ``travel_time`` (scaled by ``time_scale``), and an opposite key press while moving stops
   it;
@@ -52,6 +54,8 @@ class FakeChannel:
     icon: str = "00"
     type: str = "00"
     value: int = 0
+    #: Actual light level of a dimmer (0-100). The API only sees it through ``value``.
+    level: float = 0.0
     #: Cover position (0 = closed, 100 = open). Not visible through the API, used by tests.
     position: float = 100.0
     #: Seconds for a full cover travel or a full 0-100 dim (before ``time_scale``).
@@ -87,6 +91,7 @@ class FakeZeptrionDevice:
         rssi: int = -60,
         time_scale: float = 1.0,
         notify_timeout: float = 30.0,
+        dimmer_reports_level: bool = False,
     ) -> None:
         self.serial = serial
         self.type = type
@@ -106,6 +111,7 @@ class FakeZeptrionDevice:
         self.rssi = rssi
         self.time_scale = time_scale
         self.notify_timeout = notify_timeout
+        self.dimmer_reports_level = dimmer_reports_level
 
         #: Requests received: (method, path, body).
         self.requests: list[tuple[str, str, str]] = []
@@ -181,6 +187,24 @@ class FakeZeptrionDevice:
         async with self._changed:
             self._changed.notify_all()
 
+    def reported_value(self, number: int) -> int:
+        """The value the API reports for a channel (dimmers: 100 while lit, see module doc)."""
+        channel = self.channel(number)
+        if channel.is_dimmer and not self.dimmer_reports_level:
+            return 100 if channel.level > 0 else 0
+        if channel.is_dimmer:
+            return round(channel.level)
+        return channel.value
+
+    async def set_level(self, number: int, level: float) -> None:
+        """Set a light's level (0-100) and push the reported value if it changed."""
+        channel = self.channel(number)
+        channel.level = min(100.0, max(0.0, float(level)))
+        if not channel.is_dimmer:
+            await self.set_value(number, round(channel.level))
+            return
+        await self.set_value(number, self.reported_value(number))
+
     async def press_key(self, key: int, *, hold: float = 0.0) -> None:
         """Press and release Smartfront key ``key`` (1-based), like a person at the wall."""
         bta = ["."] * 9
@@ -219,8 +243,9 @@ class FakeZeptrionDevice:
         channel = self.channel(number)
         if cmd in ("on", "off", "toggle") and not channel.is_cover:
             await self._stop_motion(number, notify=False)
-            on = {"on": True, "off": False, "toggle": channel.value == 0}[cmd]
-            await self.set_value(number, 100 if on else 0)
+            current = channel.level if channel.is_dimmer else channel.value
+            on = {"on": True, "off": False, "toggle": current == 0}[cmd]
+            await self.set_level(number, 100 if on else 0)
         elif cmd == "stop":
             await self._stop_motion(number)
         elif cmd in ("open", "move_open", "close", "move_close") and channel.is_cover:
@@ -235,13 +260,16 @@ class FakeZeptrionDevice:
             elif action.startswith("dim") and channel.is_dimmer:
                 direction = {"dim_up": "up", "dim_down": "down"}.get(action)
                 if direction is None:  # "dim_<t>": continue in the opposite direction
-                    direction = "down" if channel.value >= 100 else "up"
+                    direction = "down" if channel.level >= 100 else "up"
                 self._start_dim(number, direction, seconds)
             else:
                 return False
         elif match := _SCENE_RE.match(cmd):
             action, scene = match[1], int(match[2])
-            current = channel.position if channel.is_cover else float(channel.value)
+            if channel.is_cover:
+                current = channel.position
+            else:
+                current = channel.level if channel.is_dimmer else float(channel.value)
             if action == "store":
                 channel.scenes[scene] = current
             elif action == "delete":
@@ -253,7 +281,7 @@ class FakeZeptrionDevice:
                     seconds = abs(target - channel.position) / 100 * channel.travel_time
                     await self._start_cover(number, direction, seconds)
                 else:
-                    await self.set_value(number, round(target))
+                    await self.set_level(number, target)
         else:
             return False
         return True
@@ -342,7 +370,7 @@ class FakeZeptrionDevice:
     async def _run_dim(self, number: int, direction: str, seconds: float | None) -> None:
         """Ramp the value silently; the final value is pushed when dimming ends."""
         channel = self.channel(number)
-        start_level = float(channel.value)
+        start_level = channel.level
         sign = 1 if direction == "up" else -1
         started = asyncio.get_running_loop().time()
 
@@ -351,7 +379,8 @@ class FakeZeptrionDevice:
             if seconds is not None:
                 elapsed = min(elapsed, seconds)
             level = min(100.0, max(0.0, start_level + sign * elapsed / channel.travel_time * 100))
-            channel.value = round(level)
+            channel.level = level
+            channel.value = self.reported_value(number)
             return elapsed, level
 
         try:

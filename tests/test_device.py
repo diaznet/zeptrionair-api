@@ -170,7 +170,9 @@ async def test_dimmer_commands() -> None:
         channel = fake.channels[0]
         await client.dim_up(1, 500)
         await wait_for(lambda: channel.direction is None)
-        assert channel.value == pytest.approx(50, abs=6)
+        assert channel.level == pytest.approx(50, abs=6)
+        assert channel.value == 100  # a lit dimmer reports 100, whatever its level
+        assert await client.state(1) == 100
         await client.dim_down(1)
         await asyncio.sleep(0.02)
         await client.stop(1)
@@ -179,7 +181,28 @@ async def test_dimmer_commands() -> None:
         await wait_for(lambda: channel.direction is None)
         await client.dim_up(1)
         await client.turn_on(1)
-        assert channel.value == 100
+        assert channel.level == 100
+        await client.turn_off(1)
+        assert channel.value == 0
+        assert channel.level == 0
+
+
+async def test_dimmer_reporting_its_level() -> None:
+    async with (
+        FakeZeptrionDevice(
+            channels=[FakeChannel("3", travel_time=1)], time_scale=0.1, dimmer_reports_level=True
+        ) as fake,
+        ZeptrionDevice(fake.host) as client,
+    ):
+        channel = fake.channels[0]
+        await client.dim_up(1, 500)
+        await wait_for(lambda: channel.direction is None)
+        assert channel.value == round(channel.level)
+        assert 40 <= await client.state(1) <= 60  # type: ignore[operator]
+        await client.store_scene(1, 1)
+        await client.turn_off(1)
+        await client.recall_scene(1, 1)
+        assert channel.level == pytest.approx(50, abs=6)
 
 
 async def test_channel_description(client: ZeptrionDevice, fake: FakeZeptrionDevice) -> None:
