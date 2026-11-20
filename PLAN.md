@@ -1,14 +1,14 @@
 # zeptrionAir for Home Assistant: full plan
 
-## Status (2026-11-02)
+## Status (2026-11-20)
 
-| Milestone | Status |
+| Release | Status |
 |---|---|
-| M0b fixtures, protocol.md | ✅ committed |
-| M1 library core | ✅ committed. 112 tests, 96 % coverage. Verified on hardware: WebSocket confirms in 30–50 ms; **the device doesn't answer WebSocket pings** (liveness via HTTP). |
-| M2 CLI + CI/release workflows | ✅ committed. **Not pushed, not released.** |
-| M3/M4 integration | ✅ committed. 33 tests, 94 % coverage, hassfest clean. The live smoke test passed against all 8 devices: setup and a light toggled in 124 ms. Covers were not moved on real hardware. |
-| M5 release | ⏳ waiting for the user: push both repos, tag `zeptrionair-api` `v0.1.0rc1` → `v0.1.0`, then tag `ha-zeptrionair` `v0.1.0`. |
+| `zeptrionair-api` 0.1.0, 0.1.1, **0.2.0** | ✅ on PyPI. 0.2.0: Smartbutton programming (`program_smartbutton`, `zeptrion smartbutton`, 730-byte check), fake device with Feller scene replay, end-stop ignore, slats, hold-to-move keys, Smartbutton endpoints and LED state. `protocol.md` 5.4: cover behaviour measured on a real shade. |
+| `ha-zeptrionair` 0.1.0 – 0.1.3, **0.2.0** | ✅ released (GitHub release with `zeptrionair.zip`), in the HACS default repositories. |
+| 0.1.3 | Dimmers with optimistic brightness; open/closed from end stops without travel times; scene store buttons; step buttons; actions `store_scene`, `recall_scene`, `move_step`, `write_name`. |
+| 0.2.0 | Calibrate button/action and learned travel times; slat tilt; scene recalls followed (two-run replay); direction inferred from end stops; hold-to-move keys; store scenes from the top; `program_smartbutton` action; Smartfront LED lights with undo; Reconnect button; connection statistics sensors; options apply without reload. 58 tests, 91 % coverage. Verified on hardware: calibration (36.4 s up / 35.3 s down), scene recall from the bottom followed to 60 %, slats. |
+| Open | Smartbutton programming on real hardware: waits for the user to name a Smartbutton whose programme may be overwritten. Channel name/group/icon sensors: dropped. Dimmers: still untested on real hardware. |
 
 Deviations from the plan below, decided while building (each checked with Context7):
 - **Devices:**
@@ -33,7 +33,7 @@ Both repos are public on GitHub and already checked out by the user:
 - `https://github.com/diaznet/zeptrionair-api`
 - `https://github.com/diaznet/ha-zeptrionair`
 
-The owner is `diaznet`. **The agent never commits or pushes; the user does.** One-time setup is done: PyPI and TestPyPI pending publishers, the `testpypi`/`pypi` environments, and `v*` tag rulesets. Everything is written to be **redistributed**: nothing may be specific to one installation.
+The owner is `diaznet`. Since 2026-11-20 the agent may commit, push and tag (releases only after green CI). One-time setup is done: PyPI and TestPyPI pending publishers, the `testpypi`/`pypi` environments, and `v*` tag rulesets. Everything is written to be **redistributed**: nothing may be specific to one installation.
 
 ---
 
