@@ -182,5 +182,101 @@
       "/zapi/smartbt/prgm": 200,
       "/zrap/does-not-exist": 404
     }
+  },
+  "device_09": {
+    "type": "3340-4-B",
+    "sw": "01.08.28 (Jun  1 2018 09:13:15)",
+    "categories": [
+      "3",
+      "3",
+      "-1",
+      "-1"
+    ],
+    "smartfront_type": null,
+    "btfu": null,
+    "status": {
+      "/zrap/id": 200,
+      "/zrap/chdes": 200,
+      "/zrap/chscan": 200,
+      "/zrap/rssi": 200,
+      "/zrap/net/mac": 200,
+      "/zapi/smartfront/id": 404,
+      "/zapi/smartfront/led": 404,
+      "/zapi/smartfront/sensor": 404,
+      "/zapi/smartfront/sensors": 404,
+      "/zapi/smartbt/prgm": 404,
+      "/zrap/does-not-exist": 404
+    }
+  },
+  "device_10": {
+    "type": "3340-4-B",
+    "sw": "01.08.28 (Jun  1 2018 09:13:15)",
+    "categories": [
+      "1",
+      "1",
+      "1",
+      "-1"
+    ],
+    "smartfront_type": null,
+    "btfu": null,
+    "status": {
+      "/zrap/id": 200,
+      "/zrap/chdes": 200,
+      "/zrap/chscan": 200,
+      "/zrap/rssi": 200,
+      "/zrap/net/mac": 200,
+      "/zapi/smartfront/id": 404,
+      "/zapi/smartfront/led": 404,
+      "/zapi/smartfront/sensor": 404,
+      "/zapi/smartfront/sensors": 404,
+      "/zapi/smartbt/prgm": 404,
+      "/zrap/does-not-exist": 404
+    }
+  },
+  "device_11": {
+    "type": "3340-2-B",
+    "sw": "01.08.28 (Jun  1 2018 09:13:39)",
+    "categories": [
+      "3",
+      "-1"
+    ],
+    "smartfront_type": null,
+    "btfu": null,
+    "status": {
+      "/zrap/id": 200,
+      "/zrap/chdes": 200,
+      "/zrap/chscan": 200,
+      "/zrap/rssi": 200,
+      "/zrap/net/mac": 200,
+      "/zapi/smartfront/id": 404,
+      "/zapi/smartfront/led": 404,
+      "/zapi/smartfront/sensor": 404,
+      "/zapi/smartfront/sensors": 404,
+      "/zapi/smartbt/prgm": 404,
+      "/zrap/does-not-exist": 404
+    }
+  },
+  "device_12": {
+    "type": "3340-2-B",
+    "sw": "01.08.28 (Jun  1 2018 09:13:39)",
+    "categories": [
+      "5",
+      "-1"
+    ],
+    "smartfront_type": "920-3304.36.ZS",
+    "btfu": "1000,1000,1000,1000,0,0,8501,8602",
+    "status": {
+      "/zrap/id": 200,
+      "/zrap/chdes": 200,
+      "/zrap/chscan": 200,
+      "/zrap/rssi": 200,
+      "/zrap/net/mac": 200,
+      "/zapi/smartfront/id": 200,
+      "/zapi/smartfront/led": 200,
+      "/zapi/smartfront/sensor": 404,
+      "/zapi/smartfront/sensors": 200,
+      "/zapi/smartbt/prgm": 200,
+      "/zrap/does-not-exist": 404
+    }
   }
 }

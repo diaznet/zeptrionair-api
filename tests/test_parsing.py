@@ -31,20 +31,33 @@ from zeptrionair_api.parsing import (
 def test_real_device_responses_parse(name: str) -> None:
     info = parse_device_info(body(name, "/zrap/id"))
     assert info.serial.startswith("9999")
-    assert info.type == "3340-2-B"
+    assert info.type in ("3340-2-B", "3340-4-B")
     assert info.firmware == (1, 8, 28)
-    assert info.channel_count == 2
+    count = info.channel_count
+    assert count in (2, 4)
 
     channels = parse_channels(body(name, "/zrap/chdes"))
-    assert [c.number for c in channels] == [1, 2]
-    assert channels[0].category in (Category.ONOFF, Category.BLIND)
+    assert [c.number for c in channels] == list(range(1, count + 1))
+    assert channels[0].category in (Category.ONOFF, Category.DIMMER, Category.BLIND)
 
     states = parse_states(body(name, "/zrap/chscan"))
-    assert set(states) == {1, 2}
-    assert all(value in (0, 100) for value in states.values())
+    assert set(states) == set(range(1, count + 1))
+    for channel in channels:
+        if channel.in_use:
+            assert states[channel.number] in (0, 100)
 
     assert -100 < parse_rssi(body(name, "/zrap/rssi")) < 0
     assert parse_mac(body(name, "/zrap/net/mac")).startswith("02:00:00:00:00:")
+
+    responses = device_responses(name)
+    if responses["/zapi/smartfront/id"]["status"] != 200:
+        # Older button face: no Smartfront, so every /zapi path is missing.
+        assert all(
+            response["status"] == 404
+            for path, response in responses.items()
+            if path.startswith("/zapi/")
+        )
+        return
 
     front = parse_smartfront(body(name, "/zapi/smartfront/id"))
     assert len(front.keys) == 8
@@ -60,6 +73,17 @@ def test_real_device_responses_parse(name: str) -> None:
     leds = parse_leds(body(name, "/zapi/smartfront/led"))
     assert [led.id for led in leds] == list(range(1, 9))
     assert all(led.background.startswith("#") for led in leds)
+
+
+def test_four_channel_device_and_dimmers() -> None:
+    info = parse_device_info(body("device_09", "/zrap/id"))
+    assert info.type == "3340-4-B"
+    channels = parse_channels(body("device_09", "/zrap/chdes"))
+    assert [c.category for c in channels] == [Category.DIMMER, Category.DIMMER, None, None]
+    # Unused channels of a 3340-4-B report -1, which parses as "no value".
+    assert parse_states(body("device_09", "/zrap/chscan")) == {1: 100, 2: 0, 3: None, 4: None}
+    # The same on a 3340-2-B reports 0.
+    assert parse_states(body("device_11", "/zrap/chscan"))[2] == 0
 
 
 def test_unused_channels() -> None:
@@ -242,6 +266,22 @@ def test_key_tracker_on_recorded_light_presses() -> None:
     events = _key_events("light_wall_keys", "0,0,1000,1000,8501,8602,4501,4602")
     pressed = [(key, direction) for key, is_pressed, direction in events if is_pressed]
     assert pressed == [(5, "up"), (3, None), (6, "down"), (8, "down"), (4, None)]
+
+
+def test_key_tracker_on_recorded_long_smartbutton_press() -> None:
+    frames = ws_frames("smartbutton_short_long")
+    events = _key_events("smartbutton_short_long", "1000,1000,1000,1000,0,0,8501,8602")
+    assert events == [(2, True, None), (2, False, None), (2, True, None), (2, False, None)]
+    # One frame on press and one on release: the hold time is the gap between them.
+    assert round(frames[3]["t"] - frames[2]["t"], 1) == 3.5
+    assert not any("eid1" in parse_ws_frame(line["frame"]) for line in frames)
+
+
+def test_button_face_without_smartfront_sends_no_key_events() -> None:
+    frames = [parse_ws_frame(line["frame"]) for line in ws_frames("legacy_face_dimmer_keys")]
+    assert frames
+    assert all(set(frame) == {"eid1"} for frame in frames)
+    assert {frame["eid1"]["val"] for frame in frames} == {0, 100}
 
 
 def test_key_tracker_multiple_and_reset() -> None:

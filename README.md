@@ -92,7 +92,8 @@ Most commands accept `--json`. Exit codes: 0 = success, 1 = device or network er
 | | Status |
 |---|---|
 | 3340-2-B, firmware 01.08.28, on/off lights and blinds, Smartfront | tested on real devices |
-| 3340-2-A, 3340-4-A/B, dimmers, awnings, sensor fronts, firmware before 01.08 | expected to work, **untested** |
+| 3340-4-B, dimmers, button faces without Smartfront (firmware 01.08.28) | fixtures from real devices, parsing tested |
+| 3340-2-A, 3340-4-A, awnings, sensor fronts, firmware before 01.08 | expected to work, **untested** |
 
 If you have untested hardware, please capture anonymised fixtures and open an issue or PR:
 
