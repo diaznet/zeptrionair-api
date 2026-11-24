@@ -82,7 +82,7 @@ To write: `POST /zrap/chdes/ch1` with body `name=Kitchen&group=First+floor`.
 ```
 - Lights: 0 = off, 100 = on.
 - Dimmers [OBS] (3340-2-B and 3340-4-B, 01.08.28): **100 whenever lit, whatever the brightness**, and 0 when off, so the brightness can't be read back. Clients have to track it themselves (optimistically).
-- Dim time [OBS]: holding the wall key, a dimmer goes from 100 % to its minimum in about **5.5 s** (measured with a stopwatch, several times, on both models). Holding the key longer keeps it at the minimum; it does not reverse. Switching on (100 %) and then sending `dim_down_<t>` reaches the minimum with *t* ≈ 5500 ms; with 3400 ms it stayed visibly brighter. Dimming up was not timed (100 % is hard to see).
+- Dim time [OBS]: holding the wall key, a dimmer goes from 100 % to its minimum in about **5.5 s** (measured with a stopwatch, several times, on both models). Holding the key longer keeps it at the minimum; it does not reverse. Switching on (100 %) and then sending `dim_down_<t>` reaches the minimum with *t* ≈ 5500 ms; with 3400 ms it stayed visibly brighter. Dimming up was not timed (100 % is hard to see). These times depend on the installation: how far a dimmer goes down depends on the dimmer and the lamp, and blind travel and slat tilt times depend on the blind and its slats. Treat the values here as examples from one installation, and let clients configure or learn them per channel.
 - [PDF] says "-1 for blinds". [OBS] On 01.08.28, covers report **0 = motor stopped, 100 = motor running**. See section 5.
 
 ### 4.4 `GET /zrap/chnotify`: long poll
@@ -141,6 +141,7 @@ Present only when a Smartfront is fitted; otherwise the endpoints return 404.
 - [OBS] The field is named `effect`; the PDF says `effects`.
 - [PDF] Only `bg` (background colour) may be changed. `on`, `rgb` and `effect` are managed by the device itself.
 - Set: `POST` a JSON array, e.g. `[{"id":2,"bg":"#220000"}]`.
+- [OBS] `bg` accepts any `#rrggbb` value, set per LED. The Feller app offers far less: nine colours, four brightness levels, and only one colour for all Smartbuttons and one for all keys of a front. A client can therefore set every LED individually, in any colour and brightness.
 
 **Smartbutton programming** (`/zapi/smartbt/prgm|prgn|prgs`): [PDF] programs a key to send HTTP requests. [OBS] `GET /zapi/smartbt/prgm` returns `{"on":false,"ntm":60}` on most fronts, but **404 on front type `920-3305.36.ZZ`**, so probe before use. The PDF also writes the path once as `zapi/smartfront/prgn`; [OBS] `/zapi/smartfront/prgm` is 404 on both front types tested (2026-11-20), so `/zapi/smartbt` is the path that works.
 
