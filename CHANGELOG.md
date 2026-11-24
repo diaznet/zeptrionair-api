@@ -4,6 +4,12 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Added
+- Test fixtures from four more devices: two 3340-4-B (2× dimmer, 3× on/off light) and a 3340-2-B dimmer, all with older button faces without Smartfront, and a 3340-2-B with Smartfront `920-3304.36.ZS`. WebSocket captures of a button face without Smartfront and of a short and a long Smartbutton press.
+
+### Changed
+- `docs/protocol.md`: dimmer reporting confirmed on hardware; full dim time measured at about 5.5 s (was reported as 3.4 s); unused channels report `val` `-1` on the 3340-4-B; button faces without Smartfront send no `eid2`; one `eid2` frame per press and release, also for long presses.
+
 ## [0.2.0]
 
 ### Added

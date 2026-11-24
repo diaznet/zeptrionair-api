@@ -1,0 +1,4 @@
+{"t":0,"device":"device_09","frame":"{\"eid1\":{\"ch\":1,\"val\":0}}"}
+{"t":2.099,"device":"device_09","frame":"{\"eid1\":{\"ch\":1,\"val\":100}}"}
+{"t":12.001,"device":"device_09","frame":"{\"eid1\":{\"ch\":1,\"val\":0}}"}
+{"t":14.369,"device":"device_09","frame":"{\"eid1\":{\"ch\":1,\"val\":100}}"}

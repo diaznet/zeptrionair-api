@@ -69,10 +69,10 @@ The WebSocket endpoint and its message format are **not documented by Feller** a
 | `cat` | Meaning | Source |
 |---|---|---|
 | `1` | on/off light | OBS |
-| `3` | dimmer | HEUR (from other projects, untested) |
+| `3` | dimmer | OBS (3340-2-B and 3340-4-B, 01.08.28) |
 | `5` | blind / shade / shutter | OBS |
 | `6` | awning (Markise) | HEUR (from other projects, untested) |
-| `00`, `-1` | unused channel | OBS; the name defaults to `zApp-<serial> (<n>)` |
+| `00`, `-1` | unused channel | OBS; the name defaults to `zApp-<serial> (<n>)`. In `chscan` an unused channel reports `val` `-1` on the 3340-4-B and `0` on the 3340-2-B |
 
 To write: `POST /zrap/chdes/ch1` with body `name=Kitchen&group=First+floor`.
 
@@ -81,7 +81,8 @@ To write: `POST /zrap/chdes/ch1` with body `name=Kitchen&group=First+floor`.
 <chscan><ch1><val>0</val></ch1><ch2><val>100</val></ch2></chscan>
 ```
 - Lights: 0 = off, 100 = on.
-- Dimmers [UNVERIFIED]: reported to return **100 whenever lit, whatever the brightness**, and 0 when off, so the brightness can't be read back. Clients have to track it themselves (optimistically). A full dim from 0 to 100 % is reported to take about **3.4 s**.
+- Dimmers [OBS] (3340-2-B and 3340-4-B, 01.08.28): **100 whenever lit, whatever the brightness**, and 0 when off, so the brightness can't be read back. Clients have to track it themselves (optimistically).
+- Dim time [OBS]: holding the wall key, a dimmer goes from 100 % to its minimum in about **5.5 s** (measured with a stopwatch, several times, on both models). Holding the key longer keeps it at the minimum; it does not reverse. Switching on (100 %) and then sending `dim_down_<t>` reaches the minimum with *t* ≈ 5500 ms; with 3400 ms it stayed visibly brighter. Dimming up was not timed (100 % is hard to see). These times depend on the installation: how far a dimmer goes down depends on the dimmer and the lamp, and blind travel and slat tilt times depend on the blind and its slats. Treat the values here as examples from one installation, and let clients configure or learn them per channel.
 - [PDF] says "-1 for blinds". [OBS] On 01.08.28, covers report **0 = motor stopped, 100 = motor running**. See section 5.
 
 ### 4.4 `GET /zrap/chnotify`: long poll
@@ -108,7 +109,7 @@ Several channels in one request: `POST /zrap/chctrl` with `cmd1=on&cmd2=off`.
 | `move_open_<t>`, `move_close_<t>` | move for *t* ms, then stop (t = 100–32000) |
 
 ### 4.6 `GET /zrap/rssi`: Wi-Fi signal
-`<rssi><dbm>-64</dbm></rssi>`. [PDF] Below −75 dBm the connection is unreliable.
+`<rssi><dbm>-64</dbm></rssi>`. [PDF] Below −75 dBm the connection is unreliable. [OBS] Once, on a 3340-4-B at −60 dBm, a request returned 500 with an empty body during a burst of sequential requests; the next one returned 200. Treat a single failure as transient.
 
 ### 4.7 `GET /zrap/net/mac`: MAC address
 `<mac>02:00:00:00:00:01</mac>`
@@ -117,6 +118,8 @@ Several channels in one request: `POST /zrap/chctrl` with `cmd1=on&cmd2=off`.
 
 ### 4.8 Smartfront: `/zapi/smartfront/*` (JSON)
 Present only when a Smartfront is fitted; otherwise the endpoints return 404.
+
+[OBS] Without a Smartfront (older button faces, seen on 3340-2-B and 3340-4-B): every `/zapi/*` path tested returns 404, including `/zapi/smartbt/prgm`. Wall keys still work, but the WebSocket only sends `eid1` when a channel value changes. There is no `eid2`, and nothing at all while a key is held to dim, so a client can't see key presses or hold times on these devices.
 
 **`GET /zapi/smartfront/id`**
 ```json
@@ -138,6 +141,7 @@ Present only when a Smartfront is fitted; otherwise the endpoints return 404.
 - [OBS] The field is named `effect`; the PDF says `effects`.
 - [PDF] Only `bg` (background colour) may be changed. `on`, `rgb` and `effect` are managed by the device itself.
 - Set: `POST` a JSON array, e.g. `[{"id":2,"bg":"#220000"}]`.
+- [OBS] `bg` accepts any `#rrggbb` value, set per LED. The Feller app offers far less: nine colours, four brightness levels, and only one colour for all Smartbuttons and one for all keys of a front. A client can therefore set every LED individually, in any colour and brightness.
 
 **Smartbutton programming** (`/zapi/smartbt/prgm|prgn|prgs`): [PDF] programs a key to send HTTP requests. [OBS] `GET /zapi/smartbt/prgm` returns `{"on":false,"ntm":60}` on most fronts, but **404 on front type `920-3305.36.ZZ`**, so probe before use. The PDF also writes the path once as `zapi/smartfront/prgn`; [OBS] `/zapi/smartfront/prgm` is 404 on both front types tested (2026-11-20), so `/zapi/smartbt` is the path that works.
 
@@ -165,7 +169,7 @@ Programming sequence [PDF]: `POST prgm` `{"on":true,"ntm":<s>}` (the Smartbutton
 ```json
 {"eid1":{"ch":1,"val":100}}
 ```
-- Lights: 0 / 100. Dimmers [UNVERIFIED]: reported to send 100 at any lit level (see 4.3).
+- Lights: 0 / 100. Dimmers [OBS]: 100 at any lit level (see 4.3); no frames while a dimmer is being dimmed.
 - **Covers: 100 = motor started, 0 = motor stopped.** This happens when a command arrives, when a wall key is pressed, and when the motor stops by itself at its end position.
 - The direction is **not** included. It has to come from the command sent or from the key that was pressed (section 6).
 
@@ -175,6 +179,7 @@ Programming sequence [PDF]: `POST prgm` `{"on":true,"ntm":<s>}` (the Smartbutton
 ```
 - 9 characters: `P` = pressed, `.` = not pressed.
 - When the key is released, a frame with all dots follows.
+- [OBS] Exactly one frame on press and one on release, also for a long press: a Smartbutton held for 3.5 s sent nothing in between. The hold time is the gap between the two frames.
 - Position *i* (0-based) is key *i+1*. The meaning of position 9 is unknown.
 
 ### 5.3 Typical sequence for a wall press
